@@ -207,22 +207,23 @@
     let mealAnalysisOnly = false;
     let pendingAnalysis = null;
 
-    // CONFIGURA TU URL DE SUPABASE EDGE FUNCTION AQUÍ:
-    const API_URL = 'https://TU_PROJECT_REF.supabase.co/functions/v1/api';
+// CONFIGURA TU URL DE APPS SCRIPT (endpoint de la aplicación web) AQUÍ:
+    const APPSCRIPT_WEB_URL = 'https://script.googleapis.com/a/macros/s/SEU_DOMAIN/exec';
 
-    async function api(action, payload) {
+    function server(action, payload, onSuccess, onError) {
+      const body = { action, payload: payload || {} };
       const session = JSON.parse(localStorage.getItem('nutritionSession') || 'null');
-      const headers = { 'Content-Type': 'application/json' };
-      if (session?.sessionToken) headers['Authorization'] = `Bearer ${session.sessionToken}`;
-      
-      const res = await fetch(`${API_URL}?action=${action}`, {
+      if (session?.sessionToken && typeof body.payload === 'object' && body.payload !== null) {
+        if (!body.payload.sessionToken) body.payload.sessionToken = session.sessionToken;
+      }
+      fetch(APPSCRIPT_WEB_URL, {
         method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error del servidor');
-      return data;
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+        .then((res) => res.json())
+        .then((data) => { if (data.error) throw new Error(data.error); onSuccess && onSuccess(data); })
+        .catch((error) => { if (onError) onError(error); else console.error(error); });
     }
 
     function expireSession() {
@@ -312,14 +313,14 @@
         const image = await resizeImage(file);
         if (request !== photoRequest) return;
         $('photoStatus').textContent = 'Analizando la foto...';
-        google.script.run.withSuccessHandler((meal) => {
+        server('describeMeal', { image }, (meal) => {
           if (request !== photoRequest) return;
           $('description').value = meal;
           $('photoStatus').textContent = 'Podés corregir la descripción antes de analizar y guardar.';
-        }).withFailureHandler((error) => {
+        }, (error) => {
           if (request !== photoRequest) return;
           $('photoStatus').textContent = 'No se pudo analizar la foto: ' + (error.message || 'error del servidor') + '. Podés escribir la descripción manualmente.';
-        }).describeMeal(image);
+        });
       } catch (error) {
         if (request === photoRequest) $('photoStatus').textContent = 'No se pudo leer la imagen: ' + (error.message || 'formato no compatible') + '.';
       }
@@ -396,9 +397,11 @@
     $('loadButton').addEventListener('click', loadReport);
     function loadReport() {
       $('report').innerHTML = '<div class="empty">Cargando registro...</div>';
-      const filters = { sessionToken:session.sessionToken, from:$('fromDate').value, to:$('toDate').value, patientUsername:$('patientSelect').value };
-      google.script.run.withSuccessHandler(renderReport).withFailureHandler((error) => { $('report').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; }).getMeals(filters);
-      google.script.run.withSuccessHandler(renderMeasurements).withFailureHandler((error) => { $('measurementsReport').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; }).getMeasurements(filters);
+      const filters = { from:$('fromDate').value, to:$('toDate').value, patientUsername:$('patientSelect').value };
+      server('getMeals', filters, (meals) => {
+        renderReport(meals);
+        server('getMeasurements', filters, renderMeasurements, (error) => { $('measurementsReport').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; });
+      }, (error) => { $('report').innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; });
     }
     function renderReport(meals) {
       const totals = meals.reduce((result, item) => {

@@ -31,6 +31,26 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+// Endpoint POST para frontend estático (GitHub Pages). El frontend envía { action, payload }.
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData || '{}');
+    const action = body.action;
+    const payload = body.payload || {};
+    const fn = this[action];
+    if (typeof fn !== 'function') {
+      return ContentService.createTextOutput(JSON.stringify({ error: 'Acción no encontrada: ' + action }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const result = fn(payload);
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ error: error.message || String(error) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 function getLogoImage() {
   return getLogoUrl_();
 }
@@ -133,7 +153,8 @@ function analyzeMealPreview(payload) {
   }
 }
 
-function describeMeal(image) {
+function describeMeal(payload) {
+  const image = payload && payload.image ? payload.image : payload;
   if (!image || !image.base64) throw new Error('No se recibió una imagen.');
 
   const apiKeys = getApiKeys_();
@@ -257,7 +278,8 @@ function loginUser(payload) {
   return { sessionToken: token, username: user.username, name: user.name, role: user.role };
 }
 
-function logoutUser(sessionToken) {
+function logoutUser(payload) {
+  const sessionToken = (payload && payload.sessionToken) || payload;
   if (sessionToken) CacheService.getScriptCache().remove('session:' + sessionToken);
   return true;
 }
