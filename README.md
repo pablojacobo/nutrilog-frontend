@@ -36,3 +36,13 @@ La aplicación consulta los modelos habilitados para la primera clave de `GROQ_A
 Las estimaciones son orientativas y no reemplazan la evaluación de un profesional de la salud. La visibilidad de las imágenes depende de los permisos de la carpeta de Drive.
 
 Para activar el reporte semanal, completá el mail de cada nutricionista en la columna G de ` Usuarios`, cargá `GEMINI_API_KEYS_JSON`, ejecutá una vez `setupApp` y luego `createWeeklyReportTrigger` desde Apps Script. El activador corre los lunes a las 08:00, analiza los siete días anteriores y envía un único correo por nutricionista, con un apartado por paciente. El reporte usa Gemini y prueba las claves configuradas hasta encontrar una que responda. Podés ejecutar `testGeminiApiKeys` para probarlas sin enviar correos. El envío no muestra mensajes en la aplicación.
+
+## Estrategia de despliegue
+
+- **main**: Producción (AppScript actual, usuarios existentes).
+- **pages-frontend**: Frontend en GitHub Pages + Apps Script como backend (fetch puro).
+
+Para los flujos de trabajo detallados y la política de ramas, ver [FLUJO_DESARROLLO.md](FLUJO_DESARROLLO.md).
+
+Para los flujos de trabajo detallados y la política de ramas, ver [FLUJO_DESARROLLO.md](FLUJO_DESARROLLO.md).
+>>>>>>> cce7a52 (Documentar flujos de desarrollo independientes main y pages-frontend)
