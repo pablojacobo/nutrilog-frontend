@@ -40,4 +40,6 @@ Para activar el reporte semanal, completá el mail de cada nutricionista en la c
 ## Estrategia de despliegue
 
 - **main**: Producción (AppScript actual, usuarios existentes).
-- **pages-backend**: Frontend en GitHub Pages + Apps Script como backend (fetch puro).
+- **pages-frontend**: Frontend en GitHub Pages + Apps Script como backend (fetch puro).
+
+Para los flujos de trabajo detallados y la política de ramas, ver [FLUJO_DESARROLLO.md](FLUJO_DESARROLLO.md).
